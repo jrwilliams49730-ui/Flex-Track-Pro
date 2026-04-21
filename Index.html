@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Flex Track Pro</title>
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="manifest.json">
+<style>
+body{margin:0;font-family:Arial,sans-serif;background:#0a0a0a;color:#fff}
+header{text-align:center;padding:18px;background:#111;border-bottom:1px solid #222}
+h1{margin:0;font-size:34px}
+.orange{color:#ff8a1f}
+.wrap{padding:14px}
+.card{background:#171717;border-radius:16px;padding:16px;margin-bottom:12px}
+button{width:100%;padding:16px;border:none;border-radius:12px;background:#ff8a1f;color:#111;font-weight:900;font-size:18px;margin-top:8px}
+.stat{font-size:18px;margin:8px 0}
+.footer{text-align:center;color:#777;padding:20px;font-size:13px}
+</style>
+</head>
+<body>
+
+<header>
+<h1>Flex <span class="orange">Track</span> Pro</h1>
+</header>
+
+<div class="wrap">
+
+<div class="card">
+<h2>Live Block</h2>
+<div class="stat">Status: <span id="status">Ready</span></div>
+<div class="stat">Time: <span id="time">00:00:00</span></div>
+<div class="stat">Miles: <span id="miles">0.00</span></div>
+
+<button onclick="startBlock()">START BLOCK</button>
+<button onclick="stopBlock()">END BLOCK</button>
+</div>
+
+</div>
+
+<div class="footer">© Static Entertainment 2026</div>
+
+<script>
+let startTime=0;
+let timer=null;
+let watch=null;
+let miles=0;
+let last=null;
+
+function fmt(sec){
+let h=String(Math.floor(sec/3600)).padStart(2,'0');
+let m=String(Math.floor((sec%3600)/60)).padStart(2,'0');
+let s=String(sec%60).padStart(2,'0');
+return h+':'+m+':'+s;
+}
+
+function dist(a,b,c,d){
+const R=3958.8;
+const p=Math.PI/180;
+let x=(c-a)*p;
+let y=(d-b)*p;
+let q=Math.sin(x/2)**2+Math.cos(a*p)*Math.cos(c*p)*Math.sin(y/2)**2;
+return 2*R*Math.asin(Math.sqrt(q));
+}
+
+function startBlock(){
+startTime=Date.now();
+miles=0;
+last=null;
+document.getElementById("status").innerText="Tracking";
+
+timer=setInterval(()=>{
+let sec=Math.floor((Date.now()-startTime)/1000);
+document.getElementById("time").innerText=fmt(sec);
+},1000);
+
+if(navigator.geolocation){
+watch=navigator.geolocation.watchPosition(pos=>{
+let la=pos.coords.latitude;
+let lo=pos.coords.longitude;
+
+if(last){
+let d=dist(last[0],last[1],la,lo);
+if(d>.01){miles+=d;}
+}
+
+last=[la,lo];
+document.getElementById("miles").innerText=miles.toFixed(2);
+
+},()=>{
+document.getElementById("status").innerText="GPS Blocked";
+});
+}
+}
+
+function stopBlock(){
+if(timer)clearInterval(timer);
+if(watch)navigator.geolocation.clearWatch(watch);
+document.getElementById("status").innerText="Stopped";
+}
+</script>
+
+</body>
+</html>
