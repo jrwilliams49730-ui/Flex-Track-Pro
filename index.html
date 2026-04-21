@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>Flex Track Pro V8 GPS</title>
+<meta name="theme-color" content="#0d0d0d">
+<style>
+:root{--bg:#0d0d0d;--card:#171717;--card2:#1f1f1f;--line:#2a2a2a;--text:#fff;--muted:#aaa;--orange:#ff8a1f;--orange2:#ffad4d;--green:#79d96b;--red:#ff6b6b}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:linear-gradient(180deg,#121212,#0d0d0d);color:#fff}
+header{padding:14px;border-bottom:1px solid #222;background:#111;position:sticky;top:0;z-index:5}
+.logoWrap{display:flex;align-items:center;justify-content:center;gap:10px}
+.mark{width:52px;height:52px;position:relative;flex:0 0 auto}
+.mark:before{content:"";position:absolute;inset:0;border-radius:12px;background:linear-gradient(135deg,var(--orange),var(--orange2));clip-path:polygon(15% 0,50% 35%,85% 0,100% 15%,65% 50%,100% 85%,85% 100%,50% 65%,15% 100%,0 85%,35% 50%,0 15%)}
+.word{font-size:34px;font-weight:900;letter-spacing:-1px;line-height:1}
+.word .a{color:#fff}.word .b{color:var(--orange)}.word .c{color:var(--green);font-size:22px;margin-left:4px}
+.tag{text-align:center;color:#aaa;font-size:12px;margin-top:4px}
+nav{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:12px}
+nav button{padding:10px 4px;border-radius:10px;border:1px solid #2a2a2a;background:#1a1a1a;color:#fff;font-size:12px}
+nav button.active{background:linear-gradient(180deg,var(--orange2),var(--orange));color:#111;font-weight:900;border:none}
+main{padding:12px;max-width:100%;overflow-x:hidden}
+.tab{display:none}.tab.active{display:block}
+.card{background:#171717;border:1px solid #242424;border-radius:18px;padding:14px;margin-bottom:12px}
+h2{margin:0 0 12px;font-size:20px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:#1f1f1f;border-radius:14px;padding:12px}
+.big{font-size:26px;font-weight:900;color:var(--green)}
+.small{font-size:12px;color:var(--muted)}
+.muted{color:var(--muted)}
+input,select,textarea,button{width:100%;padding:13px;border-radius:12px;border:1px solid #333;background:#1f1f1f;color:#fff;margin:6px 0;font-size:16px}
+button.orange{background:linear-gradient(180deg,var(--orange2),var(--orange));color:#111;font-weight:900;border:none}
+button.green{background:linear-gradient(180deg,#9ae38f,var(--green));color:#111;font-weight:900;border:none}
+button.red{background:linear-gradient(180deg,#ff8d8d,var(--red));color:#111;font-weight:900;border:none}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.listitem{padding:10px;border-bottom:1px solid #242424;font-size:14px}
+.action{width:auto;padding:7px 10px;margin-top:8px;margin-right:6px}
+.metric{padding:12px;border:1px solid #252525;border-radius:14px;background:#1f1f1f;margin-bottom:10px}
+.livebox{background:#101010;border:1px solid #2d2d2d;border-radius:18px;padding:16px;text-align:center}
+.liveval{font-size:38px;font-weight:900;margin:6px 0}
+.pill{display:inline-block;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700}
+.pill.green{background:rgba(121,217,107,.15);color:#9bea8f}
+.pill.red{background:rgba(255,107,107,.15);color:#ff9a9a}
+.hidden{display:none}
+@media(max-width:360px){.word{font-size:28px}nav button{font-size:11px;padding:9px 2px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logoWrap">
+    <div class="mark"></div>
+    <div class="word"><span class="a">Flex</span><span class="b">Track</span> <span class="c">PRO</span></div>
+  </div>
+  <div class="tag">Know Your Real Profit</div>
+  <nav>
+    <button class="active" onclick="showTab('live',this)">Live</button>
+    <button onclick="showTab('history',this)">History</button>
+    <button onclick="showTab('stats',this)">Stats</button>
+    <button onclick="showTab('settings',this)">Settings</button>
+  </nav>
+</header>
+
+<main>
+  <section id="live" class="tab active">
+    <div class="card">
+      <h2>Live Block</h2>
+      <div class="livebox">
+        <div id="statusPill" class="pill red">Not Tracking</div>
+        <div class="small" style="margin-top:10px">Elapsed Time</div>
+        <div id="elapsed" class="liveval">00:00:00</div>
+        <div class="small">Miles Tracked</div>
+        <div id="milesLive" class="liveval">0.00</div>
+        <div class="small" id="gpsNote">GPS ready when you press start.</div>
+      </div>
+      <button id="startBtn" class="green" onclick="startBlock()">START BLOCK</button>
+      <button id="endBtn" class="red hidden" onclick="endBlock()">END BLOCK</button>
+    </div>
+
+    <div id="finishCard" class="card hidden">
+      <h2 id="formTitle">Finish Block</h2>
+      <div class="metric"><strong>Total Time:</strong> <span id="finalTime">0m</span></div>
+      <div class="metric"><strong>Total Miles:</strong> <span id="finalMiles">0.00</span></div>
+      <input id="date" type="date">
+      <div class="row">
+        <input id="pay" type="number" step="0.01" placeholder="Pay">
+        <input id="hours" type="number" step="0.1" placeholder="Block Hours">
+      </div>
+      <div class="row">
+        <input id="stops" type="number" placeholder="Stops">
+        <input id="packages" type="number" placeholder="Packages">
+      </div>
+      <label class="small" style="display:block;margin-top:6px">Sent Home</label>
+      <select id="sent"><option>No</option><option>Yes</option></select>
+      <textarea id="notes" placeholder="Notes"></textarea>
+      <button class="orange" onclick="saveFinishedBlock()">SAVE BLOCK</button>
+      <button onclick="cancelFinishedBlock()">Cancel</button>
+    </div>
+  </section>
+
+  <section id="history" class="tab">
+    <div class="card">
+      <h2>History</h2>
+      <div class="row">
+        <input id="search" placeholder="Search notes" oninput="renderHistory()">
+        <button class="orange" onclick="exportCSV()">Export CSV</button>
+      </div>
+      <div id="historyRows"></div>
+    </div>
+  </section>
+
+  <section id="stats" class="tab">
+    <div class="card">
+      <h2>Main Stats</h2>
+      <div class="stats">
+        <div class="stat"><div class="big" id="gross">$0.00</div><div class="small">Gross</div></div>
+        <div class="stat"><div class="big" id="net">$0.00</div><div class="small">Net</div></div>
+        <div class="stat"><div class="big" id="count">0</div><div class="small">Blocks</div></div>
+        <div class="stat"><div class="big" id="avg">$0.00</div><div class="small">Avg Net</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Useful Insights</h2>
+      <div id="insightRows"></div>
+    </div>
+  </section>
+
+  <section id="settings" class="tab">
+    <div class="card">
+      <h2>Settings</h2>
+      <input id="warehouse" placeholder="Warehouse">
+      <input id="vehicle" placeholder="Vehicle">
+      <input id="wear" type="number" step="0.01" placeholder="Wear per mile">
+      <button class="orange" onclick="saveSettings()">Save Settings</button>
+      <div class="small">GPS tracking works best when location permission is allowed and the browser stays active.</div>
+    </div>
+  </section>
+</main>
+
+<script>
+const KEY='ftpv8gps';
+let app=JSON.parse(localStorage.getItem(KEY)||'{"settings":{"warehouse":"Longs SC (VSC3)","vehicle":"2019 Dodge Grand Caravan","wear":0.15},"blocks":[]}');
+let editId=null;
+let watchId=null;
+let isTracking=false;
+let tracking={startTime:null,endTime:null,totalMiles:0,lastLat:null,lastLon:null};
+let timerId=null;
+
+function save(){localStorage.setItem(KEY,JSON.stringify(app));renderAll();}
+function money(n){return '$'+(+n||0).toFixed(2)}
+function netv(b){return (+b.pay)-((+b.miles||0)*(+app.settings.wear||0.15))}
+function today(){let d=new Date(),o=d.getTimezoneOffset();return new Date(d.getTime()-o*60000).toISOString().slice(0,10)}
+function showTab(id,btn){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));btn.classList.add('active')}
+function formatElapsed(ms){const total=Math.max(0,Math.floor(ms/1000));const h=String(Math.floor(total/3600)).padStart(2,'0');const m=String(Math.floor((total%3600)/60)).padStart(2,'0');const s=String(total%60).padStart(2,'0');return `${h}:${m}:${s}`}
+function haversine(lat1, lon1, lat2, lon2){
+  const R=3958.8, toRad=d=>d*Math.PI/180;
+  const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
+  const a=Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+function updateLiveUI(){
+  if(isTracking && tracking.startTime){
+    elapsed.innerText=formatElapsed(Date.now()-tracking.startTime);
+    milesLive.innerText=(tracking.totalMiles||0).toFixed(2);
+  } else { elapsed.innerText='00:00:00'; milesLive.innerText='0.00'; }
+}
+function startBlock(){
+  if(!navigator.geolocation){ alert('GPS is not supported on this device/browser.'); return; }
+  tracking={startTime:Date.now(),endTime:null,totalMiles:0,lastLat:null,lastLon:null};
+  isTracking=true;
+  statusPill.className='pill green'; statusPill.innerText='Tracking';
+  gpsNote.innerText='Waiting for GPS signal...';
+  startBtn.classList.add('hidden'); endBtn.classList.remove('hidden'); finishCard.classList.add('hidden');
+  watchId=navigator.geolocation.watchPosition(
+    pos=>{
+      const lat=pos.coords.latitude, lon=pos.coords.longitude;
+      if(tracking.lastLat!==null && tracking.lastLon!==null){
+        const d=haversine(tracking.lastLat,tracking.lastLon,lat,lon);
+        if(d>0.01){ tracking.totalMiles += d; }
+      }
+      tracking.lastLat=lat; tracking.lastLon=lon; gpsNote.innerText='GPS tracking active.'; updateLiveUI();
+    },
+    err=>{ gpsNote.innerText='GPS error: '+err.message; },
+    {enableHighAccuracy:true, maximumAge:3000, timeout:15000}
+  );
+  if(timerId) clearInterval(timerId);
+  timerId=setInterval(updateLiveUI,1000);
+  updateLiveUI();
+}
+function endBlock(){
+  if(watchId!==null){ navigator.geolocation.clearWatch(watchId); watchId=null; }
+  if(timerId){ clearInterval(timerId); timerId=null; }
+  isTracking=false; tracking.endTime=Date.now();
+  statusPill.className='pill red'; statusPill.innerText='Not Tracking'; gpsNote.innerText='Tracking ended.';
+  startBtn.classList.remove('hidden'); endBtn.classList.add('hidden');
+  finalTime.innerText=formatElapsed(tracking.endTime-tracking.startTime);
+  finalMiles.innerText=(tracking.totalMiles||0).toFixed(2);
+  date.value=today(); finishCard.classList.remove('hidden');
+}
+function saveFinishedBlock(){
+  const block={
+    id:editId||Date.now(),
+    date:date.value||today(),
+    startTime:tracking.startTime,
+    endTime:tracking.endTime,
+    totalTimeMs:(tracking.endTime&&tracking.startTime)?(tracking.endTime-tracking.startTime):0,
+    pay:+pay.value||0,
+    hours:+hours.value||0,
+    miles:+(tracking.totalMiles||0).toFixed(2),
+    sent:sent.value,
+    stops:+stops.value||0,
+    packages:+packages.value||0,
+    notes:notes.value||''
+  };
+  if(editId){app.blocks=app.blocks.map(b=>b.id==editId?block:b);} else {app.blocks.unshift(block);}
+  cancelFinishedBlock(); save(); showTab('history', document.querySelectorAll('nav button')[1]);
+}
+function cancelFinishedBlock(){
+  editId=null; formTitle.innerText='Finish Block';
+  pay.value=''; hours.value=''; stops.value=''; packages.value=''; notes.value=''; sent.value='No';
+  finishCard.classList.add('hidden');
+  tracking={startTime:null,endTime:null,totalMiles:0,lastLat:null,lastLon:null};
+  updateLiveUI();
+}
+function editBlock(id){
+  const b=app.blocks.find(x=>x.id==id); if(!b)return;
+  editId=id; formTitle.innerText='Edit Block';
+  tracking.startTime=b.startTime||Date.now(); tracking.endTime=b.endTime||Date.now(); tracking.totalMiles=+b.miles||0;
+  finalTime.innerText=formatElapsed(b.totalTimeMs||0); finalMiles.innerText=(+b.miles||0).toFixed(2);
+  date.value=b.date||today(); pay.value=b.pay||''; hours.value=b.hours||''; sent.value=b.sent||'No';
+  stops.value=b.stops||''; packages.value=b.packages||''; notes.value=b.notes||'';
+  finishCard.classList.remove('hidden'); showTab('live', document.querySelectorAll('nav button')[0]); window.scrollTo({top:0,behavior:'smooth'});
+}
+function delBlock(id){app.blocks=app.blocks.filter(b=>b.id!=id);save();}
+function saveSettings(){app.settings.warehouse=warehouse.value||'Longs SC (VSC3)'; app.settings.vehicle=vehicle.value||'2019 Dodge Grand Caravan'; app.settings.wear=+wear.value||0.15; save();}
+function renderHistory(){
+  const q=(search.value||'').toLowerCase();
+  const filtered=app.blocks.filter(b=>(b.notes||'').toLowerCase().includes(q));
+  historyRows.innerHTML=filtered.map(b=>`
+    <div class='listitem'>
+      <strong>${b.date}</strong><br>
+      Time ${formatElapsed(b.totalTimeMs||0)} • ${b.miles} mi<br>
+      ${money(b.pay)} • Net ${money(netv(b))}<br>
+      ${b.stops} stops • ${b.packages} packages • Sent Home: ${b.sent}<br>
+      <span class='muted'>${b.notes||''}</span><br>
+      <button class='action' onclick='editBlock(${b.id})'>Edit</button>
+      <button class='action' onclick='delBlock(${b.id})'>Delete</button>
+    </div>
+  `).join('')||'No blocks yet';
+}
+function renderStats(){
+  let g=app.blocks.reduce((a,b)=>a+(+b.pay||0),0), n=app.blocks.reduce((a,b)=>a+netv(b),0);
+  gross.innerText=money(g); net.innerText=money(n); count.innerText=app.blocks.length; avg.innerText=money(app.blocks.length?n/app.blocks.length:0);
+}
+function renderInsights(){
+  const byHours={};
+  app.blocks.forEach(b=>{ const k=(+b.hours||0).toString(); if(!byHours[k]) byHours[k]=[]; byHours[k].push(netv(b)); });
+  const entries=Object.entries(byHours).sort((a,b)=> (b[1].reduce((x,y)=>x+y,0)/b[1].length) - (a[1].reduce((x,y)=>x+y,0)/a[1].length));
+  insightRows.innerHTML = entries.length ? entries.map(([hrs,vals])=>{
+    const avgNet=vals.reduce((x,y)=>x+y,0)/vals.length;
+    return `<div class="metric">${hrs} hr blocks — avg net <strong>${money(avgNet)}</strong> across ${vals.length} block(s)</div>`;
+  }).join('') : '<div class="metric">No insight data yet.</div>';
+}
+function exportCSV(){
+  let csv='Date,StartTime,EndTime,TotalTimeMs,Pay,BlockHours,Miles,Net,Sent,Stops,Packages,Notes\n'+app.blocks.map(b=>{
+    const notes=(b.notes||'').replaceAll('"','""');
+    return `"${b.date}","${b.startTime||''}","${b.endTime||''}",${b.totalTimeMs||0},${b.pay||0},${b.hours||0},${b.miles||0},${netv(b)},"${b.sent||'No'}",${b.stops||0},${b.packages||0},"${notes}"`;
+  }).join('\n');
+  let blob=new Blob([csv],{type:'text/csv'}); let a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download='flex-track-pro-v8-gps.csv'; a.click();
+}
+function renderAll(){ renderHistory(); renderStats(); renderInsights(); warehouse.value=app.settings.warehouse; vehicle.value=app.settings.vehicle; wear.value=app.settings.wear; }
+date.value=today(); renderAll();
+</script>
+</body>
+</html>
