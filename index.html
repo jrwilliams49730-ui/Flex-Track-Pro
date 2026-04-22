@@ -1,0 +1,429 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flex Track Pro</title>
+  <meta name="theme-color" content="#000000" />
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --panel: #111111;
+      --card: #171717;
+      --line: #262626;
+      --input: #1f1f1f;
+      --text: #ffffff;
+      --muted: #aaaaaa;
+      --orange: #ff8a1f;
+      --green: #7ad96b;
+      --red: #c0392b;
+      --gray: #333333;
+    }* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Arial, sans-serif;
+}
+
+header {
+  background: var(--panel);
+  padding: 14px;
+  text-align: center;
+  border-bottom: 1px solid #222;
+}
+
+header img {
+  max-width: 520px;
+  width: 92%;
+  height: auto;
+}
+
+.fallback-logo {
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: -1px;
+}
+
+.fallback-logo .orange { color: var(--orange); }
+
+.wrap {
+  padding: 14px;
+  max-width: 760px;
+  margin: auto;
+}
+
+.card {
+  background: var(--card);
+  padding: 16px;
+  border-radius: 18px;
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+}
+
+h2 {
+  margin: 0 0 12px;
+  font-size: 22px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+input, button, select {
+  width: 100%;
+  padding: 14px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  box-sizing: border-box;
+}
+
+input, select {
+  background: var(--input);
+  color: var(--text);
+  border: 1px solid #333;
+}
+
+button {
+  background: var(--orange);
+  color: #111;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+button.gray { background: var(--gray); color: #fff; }
+button.red { background: var(--red); color: #fff; }
+button.green { background: var(--green); color: #111; }
+
+.small {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.live-stat {
+  margin: 6px 0;
+}
+
+.item {
+  padding: 12px 0;
+  border-bottom: 1px solid #252525;
+}
+
+.footer {
+  text-align: center;
+  color: #777;
+  padding: 20px;
+  font-size: 13px;
+}
+
+#saveCard {
+  display: none;
+}
+
+.hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #888;
+}
+
+@media (max-width: 520px) {
+  .row { grid-template-columns: 1fr; }
+  .fallback-logo { font-size: 30px; }
+}
+
+  </style>
+</head>
+<body>
+  <header>
+    <img src="logo-main.png" alt="Flex Track Pro" onerror="this.outerHTML='<div class=&quot;fallback-logo&quot;>Flex <span class=&quot;orange&quot;>Track</span> Pro</div>'" />
+  </header>  <div class="wrap">
+    <div class="card">
+      <h2>Live Block</h2>
+      <div class="live-stat">Status: <span id="status">Ready</span></div>
+      <div class="small">Live Time: <span id="time">00:00:00</span></div>
+      <div class="small">Live Miles: <span id="miles">0.00</span></div><div class="row">
+    <button class="green" id="beginBtn" onclick="startBlock()">BEGIN BLOCK</button>
+    <button class="gray" id="endBtn" onclick="endBlock()">END BLOCK</button>
+  </div>
+  <div class="hint">Tap Begin when you leave. Tap End when you get back. History stays below.</div>
+</div>
+
+<div class="card" id="saveCard">
+  <h2 id="formTitle">Save Block</h2>
+
+  <div class="row">
+    <input id="blocklength" placeholder="Block Length (3hr)" />
+    <input id="pay" type="number" step="0.01" placeholder="Pay" />
+  </div>
+
+  <div class="row">
+    <input id="hoursworked" placeholder="Actual Time Worked" readonly />
+    <input id="milesworked" placeholder="Actual Miles" />
+  </div>
+
+  <div class="row">
+    <input id="stops" type="number" placeholder="Stops" />
+    <input id="packages" type="number" placeholder="Packages" />
+  </div>
+
+  <div class="row">
+    <input id="mpg" type="number" step="0.1" placeholder="MPG" />
+    <input id="gasprice" type="number" step="0.01" placeholder="Gas $/gal" />
+  </div>
+
+  <div class="small">
+    Fuel Cost: $<span id="fuelcost">0.00</span><br>
+    Net Profit: $<span id="netprofit">0.00</span>
+  </div>
+
+  <div class="row">
+    <button onclick="saveBlock()">SAVE</button>
+    <button class="gray" onclick="resetForm()">RESET</button>
+  </div>
+</div>
+
+<div class="card">
+  <h2>History</h2>
+
+  <div class="row">
+    <button onclick="exportCSV()">EXPORT CSV</button>
+    <button class="gray" onclick="clearAll()">CLEAR ALL</button>
+  </div>
+
+  <div id="history"></div>
+</div>
+
+  </div>  <div class="footer">© Static Entertainment 2026</div>  <script>
+    const STORAGE_KEYS = ["ftpblocks", "ftp_blocks", "ftp_blocks_final", "flextrackblocks"];
+
+    function loadBlocks() {
+      for (const key of STORAGE_KEYS) {
+        try {
+          const raw = localStorage.getItem(key);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) return parsed;
+          }
+        } catch (e) {}
+      }
+      return [];
+    }
+
+    function saveBlocks() {
+      localStorage.setItem("ftpblocks", JSON.stringify(blocks));
+    }
+
+    let blocks = loadBlocks();
+    let timer = null;
+    let watch = null;
+    let startTime = 0;
+    let milesNum = 0;
+    let last = null;
+    let editId = null;
+
+    const $ = (id) => document.getElementById(id);
+
+    function fmt(sec) {
+      const h = String(Math.floor(sec / 3600)).padStart(2, "0");
+      const m = String(Math.floor((sec % 3600) / 60)).padStart(2, "0");
+      const s = String(sec % 60).padStart(2, "0");
+      return `${h}:${m}:${s}`;
+    }
+
+    function dist(a, b, c, d) {
+      const R = 3958.8;
+      const p = Math.PI / 180;
+      const x = (c - a) * p;
+      const y = (d - b) * p;
+      const q = Math.sin(x / 2) ** 2 + Math.cos(a * p) * Math.cos(c * p) * Math.sin(y / 2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(q));
+    }
+
+    function startBlock() {
+      $("saveCard").style.display = "none";
+      startTime = Date.now();
+      milesNum = 0;
+      last = null;
+
+      $("status").innerText = "Tracking";
+      $("time").innerText = "00:00:00";
+      $("miles").innerText = "0.00";
+
+      if (timer) clearInterval(timer);
+      timer = setInterval(() => {
+        const sec = Math.floor((Date.now() - startTime) / 1000);
+        $("time").innerText = fmt(sec);
+      }, 1000);
+
+      if (navigator.geolocation) {
+        watch = navigator.geolocation.watchPosition(pos => {
+          const la = pos.coords.latitude;
+          const lo = pos.coords.longitude;
+
+          if (last) {
+            const d = dist(last[0], last[1], la, lo);
+            if (d > 0.01) milesNum += d;
+          }
+
+          last = [la, lo];
+          $("miles").innerText = milesNum.toFixed(2);
+        }, () => {
+          $("status").innerText = "GPS Blocked";
+        });
+      }
+    }
+
+    function endBlock() {
+      if (timer) clearInterval(timer);
+      if (watch) navigator.geolocation.clearWatch(watch);
+
+      $("status").innerText = "Stopped";
+      $("hoursworked").value = $("time").innerText;
+      $("milesworked").value = $("miles").innerText; // auto-fill GPS estimate, user may override
+      $("saveCard").style.display = "block";
+      calcFuel();
+      window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+    }
+
+    function calcFuel() {
+      const m = parseFloat($("milesworked").value) || 0;
+      const mpgv = parseFloat($("mpg").value) || 0;
+      const gas = parseFloat($("gasprice").value) || 0;
+      const payv = parseFloat($("pay").value) || 0;
+
+      if (mpgv > 0 && gas > 0) {
+        const fuel = (m / mpgv) * gas;
+        $("fuelcost").innerText = fuel.toFixed(2);
+        $("netprofit").innerText = (payv - fuel).toFixed(2);
+      } else {
+        $("fuelcost").innerText = "0.00";
+        $("netprofit").innerText = payv.toFixed(2);
+      }
+    }
+
+    $("pay").oninput = calcFuel;
+    $("mpg").oninput = calcFuel;
+    $("gasprice").oninput = calcFuel;
+
+    function saveBlock() {
+      const b = {
+        id: editId || Date.now(),
+        date: new Date().toLocaleDateString(),
+        block: $("blocklength").value || "",
+        pay: $("pay").value || "0",
+        worked: $("hoursworked").value || "00:00:00",
+        miles: $("milesworked").value || "0.00",
+        stops: $("stops").value || "0",
+        packages: $("packages").value || "0",
+        mpg: $("mpg").value || "",
+        gasprice: $("gasprice").value || "",
+        fuel: $("fuelcost").innerText || "0.00",
+        net: $("netprofit").innerText || "0.00"
+      };
+
+      if (editId) {
+        blocks = blocks.map(x => x.id === editId ? b : x);
+      } else {
+        blocks.unshift(b);
+      }
+
+      saveBlocks();
+      render();
+      resetForm();
+    }
+
+    function editBlock(id) {
+      const b = blocks.find(x => x.id === id);
+      if (!b) return;
+
+      editId = id;
+      $("formTitle").innerText = "Edit Block";
+      $("blocklength").value = b.block || "";
+      $("pay").value = b.pay || "";
+      $("hoursworked").value = b.worked || b.time || "";
+      $("milesworked").value = b.miles || "";
+      $("stops").value = b.stops || "";
+      $("packages").value = b.packages || "";
+      $("mpg").value = b.mpg || "";
+      $("gasprice").value = b.gasprice || "";
+      $("fuelcost").innerText = b.fuel || "0.00";
+      $("netprofit").innerText = b.net || "0.00";
+      $("saveCard").style.display = "block";
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function deleteBlock(id) {
+      blocks = blocks.filter(x => x.id !== id);
+      saveBlocks();
+      render();
+    }
+
+    function resetForm() {
+      editId = null;
+      $("formTitle").innerText = "Save Block";
+      $("blocklength").value = "";
+      $("pay").value = "";
+      $("hoursworked").value = "";
+      $("milesworked").value = "";
+      $("stops").value = "";
+      $("packages").value = "";
+      $("mpg").value = "";
+      $("gasprice").value = "";
+      $("fuelcost").innerText = "0.00";
+      $("netprofit").innerText = "0.00";
+      $("saveCard").style.display = "none";
+    }
+
+    function render() {
+      const box = $("history");
+      if (!blocks || blocks.length === 0) {
+        box.innerHTML = "<div class='small'>No saved blocks.</div>";
+        return;
+      }
+
+      box.innerHTML = blocks.map(b => `
+        <div class="item">
+          <b>${b.date || "Saved Block"}</b><br>
+          ${b.block || "Block"} | $${b.pay || "0"}<br>
+          Worked ${b.worked || b.time || "00:00:00"} | Actual ${b.miles || "0.00"} mi<br>
+          ${b.stops || "0"} stops | ${b.packages || "0"} pkgs<br>
+          Fuel $${b.fuel || "0.00"} | Net $${b.net || "0.00"}
+          <div class="row">
+            <button onclick="editBlock(${b.id})">EDIT</button>
+            <button class="red" onclick="deleteBlock(${b.id})">DELETE</button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function clearAll() {
+      blocks = [];
+      for (const key of STORAGE_KEYS) localStorage.removeItem(key);
+      render();
+    }
+
+    function exportCSV() {
+      if (!blocks.length) return;
+
+      let csv = "Date,Block Length,Pay,Worked Time,Miles,Stops,Packages,MPG,Gas Price,Fuel,Net\n";
+      blocks.forEach(b => {
+        csv += `${b.date || ""},${b.block || ""},${b.pay || ""},${b.worked || b.time || ""},${b.miles || ""},${b.stops || ""},${b.packages || ""},${b.mpg || ""},${b.gasprice || ""},${b.fuel || ""},${b.net || ""}\n`;
+      });
+
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "flex-track-pro.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    render();
+  </script></body>
+</html>
